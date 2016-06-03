@@ -32,6 +32,9 @@ namespace CsDebugScript.Engine.Debuggers
         [ThreadStatic]
         private static StateCache stateCache;
 
+        [ThreadStatic]
+        private static DebugEventCallbacks eventCallbacks;
+
         /// <summary>
         /// The DbgEng.dll Advanced interface
         /// </summary>
@@ -83,6 +86,21 @@ namespace CsDebugScript.Engine.Debuggers
             originalClient = client;
             threadClient = client;
             stateCache = new StateCache(this);
+
+            // Initilze debug loop in case of live debugging.
+            //
+            if (IsLiveDebugging)
+            {
+                // eventCallbacks = new DebugEventCallbacks();
+                // originalClient.SetEventCallbacks(eventCallbacks);
+
+                DebugOutput captureFlags = DebugOutput.Normal | DebugOutput.Error | DebugOutput.Warning | DebugOutput.Verbose
+                    | DebugOutput.Prompt | DebugOutput.PromptRegisters | DebugOutput.ExtensionWarning | DebugOutput.Debuggee
+                    | DebugOutput.DebuggeePrompt | DebugOutput.Symbols | DebugOutput.Status;
+
+                var outputer = (IDebugOutputCallbacksWide)(new DbgEngDebuggerOutputToTextWriter(Console.Out, captureFlags));
+                ((IDebugClient7)originalClient).SetOutputCallbacksWide(outputer);
+            }
         }
 
         /// <summary>
@@ -1242,17 +1260,145 @@ namespace CsDebugScript.Engine.Debuggers
             }
         }
 
-        #region Native methods
         /// <summary>
-        /// An application-defined callback function used with the StackWalkEx function. It is called when StackWalk64 needs to read memory from the address space of the process.
+        /// Continues execution of the process under debugger.
         /// </summary>
-        /// <param name="hProcess">A handle to the process for which the stack trace is generated.</param>
-        /// <param name="lpBaseAddress">The base address of the memory to be read.</param>
-        /// <param name="lpBuffer">A pointer to a buffer that receives the memory to be read.</param>
-        /// <param name="nSize">The size of the memory to be read, in bytes.</param>
-        /// <param name="lpNumberOfBytesRead">A pointer to a variable that receives the number of bytes actually read.</param>
-        /// <returns></returns>
-        private delegate bool ReadProcessMemoryProc64(IntPtr hProcess, ulong lpBaseAddress, IntPtr lpBuffer, uint nSize, out uint lpNumberOfBytesRead);
+        public void Continue()
+        {
+            // Execute("g");
+            Control.Execute(0, "g", 0);
+        }
+
+        /// <summary>
+        /// Breaks execution of the process under debugger.
+        /// </summary>
+        public void Break()
+        {
+            // Force an active interrupt.
+            //
+            // Interrupt types.
+            // Force a break in if the debuggee is running.
+            // #define DEBUG_INTERRUPT_ACTIVE  0
+            Control.SetInterrupt(0);
+        }
+
+        #region IDebugEventCallbacks
+        /// <summary>
+        /// DebugEventCallbacks for controling debuggee flow.
+        /// </summary>
+        class DebugEventCallbacks : IDebugEventCallbacks, IDisposable
+        {
+            public uint GetInterestMask()
+            {
+                return (uint)(Defines.DebugEventBreakpoint | Defines.DebugEventCreateProcess
+                    | Defines.DebugEventException | Defines.DebugEventExitProcess
+                    | Defines.DebugEventCreateThread | Defines.DebugEventExitThread
+                    | Defines.DebugEventLoadModule | Defines.DebugEventUnloadModule
+                    | Defines.DebugEventSystemError | Defines.DebugEventSessionStatus
+                    | Defines.DebugEventChangeDebuggeeState | Defines.DebugEventChangeEngineState
+                    | Defines.DebugEventChangeSymbolState);
+            }
+
+            public int Breakpoint(IDebugBreakpoint Bp)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
+            {
+                Console.WriteLine("Thread has been created");
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int ExitThread(uint ExitCode)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int ExitProcess(uint ExitCode)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int UnloadModule(string ImageBaseName, ulong BaseOffset)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int SystemError(uint Error, uint Level)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int SessionStatus(uint Status)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int ChangeDebuggeeState(uint Flags, ulong Argument)
+            {
+                Console.WriteLine("Changing debug state {0} {1}", Flags, Argument);
+
+                uint state = DbgEngDll.control.GetExecutionStatus();
+
+                Console.WriteLine("Status - {0}", state);
+
+                if (state == (int)Defines.DebugStatusGo)
+                {
+                    return (int)Defines.DebugStatusGo;
+                }
+                else
+                {
+                    Console.WriteLine("Unknwon state");
+                }
+
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int ChangeEngineState(uint Flags, ulong Argument)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public int ChangeSymbolState(uint Flags, ulong Argument)
+            {
+                return (int)Defines.DebugStatusNoChange;
+            }
+
+            public void Dispose()
+            {
+                client.SetEventCallbacks(null);
+            }
+    }
+
+    #endregion
+
+    #region Native methods
+    /// <summary>
+    /// An application-defined callback function used with the StackWalkEx function. It is called when StackWalk64 needs to read memory from the address space of the process.
+    /// </summary>
+    /// <param name="hProcess">A handle to the process for which the stack trace is generated.</param>
+    /// <param name="lpBaseAddress">The base address of the memory to be read.</param>
+    /// <param name="lpBuffer">A pointer to a buffer that receives the memory to be read.</param>
+    /// <param name="nSize">The size of the memory to be read, in bytes.</param>
+    /// <param name="lpNumberOfBytesRead">A pointer to a variable that receives the number of bytes actually read.</param>
+    /// <returns></returns>
+    private delegate bool ReadProcessMemoryProc64(IntPtr hProcess, ulong lpBaseAddress, IntPtr lpBuffer, uint nSize, out uint lpNumberOfBytesRead);
 
         /// <summary>
         /// An application-defined callback function used with the StackWalkEx function. It provides access to the run-time function table for the process.

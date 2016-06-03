@@ -285,6 +285,16 @@ namespace CreateDbgEngIdl
                                         string[] parametersArray = parametersString.Split(",".ToCharArray());
                                         int outParameters = 0;
                                         bool forbidOptional = false;
+                                        bool forbidRetval = false;
+
+                                        if (interfaceName == "IDebugEventCallbacks" && returnValue == "HRESULT" && methodName != "GetInterestMask")
+                                        {
+                                            // IDebugEventCallbacks use return HRESULT as next state, not as indication of error/success.
+                                            // Override it to be int
+                                            //
+                                            returnValue = "int";
+                                            forbidRetval = true;
+                                        }
 
                                         if (parametersString.Contains("..."))
                                         {
@@ -332,7 +342,7 @@ namespace CreateDbgEngIdl
                                                 convertToArray = true;
                                             }
 
-                                            if (outParameters == 1 && outAttribute && i == parametersArray.Length - 1 && !optionalAttribute)
+                                            if (outParameters == 1 && outAttribute && i == parametersArray.Length - 1 && !optionalAttribute && !forbidRetval)
                                                 parameters.Append(",retval");
                                             parameters.Append("] ");
                                             foreach (var reference in references)

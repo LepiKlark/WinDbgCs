@@ -97,6 +97,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="CLR\ValueTests.cs" />
+    <Compile Include="DebugeeControlFlow.cs" />
     <Compile Include="TestBase.cs" />
     <None Include="CLR\Apps\LocalVariables.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

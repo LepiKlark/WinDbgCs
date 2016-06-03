@@ -486,6 +486,22 @@ namespace CsDebugScript.VS
         {
             throw new NotImplementedException(NotImplementedExceptionText);
         }
+
+        /// <summary>
+        ///  Continues execution of the process under debugger.
+        /// </summary>
+        public void Continue()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Breaks execution of the process under debugger.
+        /// </summary>
+        public void Break()
+        {
+            throw new NotImplementedException();
+        }
         #endregion
     }
 }

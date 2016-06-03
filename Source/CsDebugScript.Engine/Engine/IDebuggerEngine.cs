@@ -288,5 +288,15 @@ namespace CsDebugScript.Engine
         /// </summary>
         /// <returns></returns>
         DebugEventInfo GetLastEventInfo();
+
+        /// <summary>
+        /// Continues execution of the process under debugger.
+        /// </summary>
+        void Continue();
+
+        /// <summary>
+        /// Breaks execution of the process under debugger.
+        /// </summary>
+        void Break();
     }
 }

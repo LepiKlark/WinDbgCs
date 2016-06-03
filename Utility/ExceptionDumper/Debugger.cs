@@ -48,12 +48,13 @@ namespace ExceptionDumper
                 | Defines.DebugEventLoadModule | Defines.DebugEventUnloadModule);
         }
 
-        public void Breakpoint(IDebugBreakpoint Bp)
+        public int Breakpoint(IDebugBreakpoint Bp)
         {
             // Do nothing
+            return 0;
         }
 
-        public void Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
+        public int Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
         {
             if (FirstChance != 1)
             {
@@ -61,61 +62,74 @@ namespace ExceptionDumper
                 client.WriteDumpFile(dumpPath, (uint)(miniDump ? Defines.DebugDumpSmall : Defines.DebugDumpDefault));
                 dumpTaken = true;
             }
+
+            return 0;
         }
 
-        public void CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
+        public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
         {
+            // Do nothing
+            return 0;
+        }
+
+        public int ExitThread(uint ExitCode)
+        {
+            return 0;
             // Do nothing
         }
 
-        public void ExitThread(uint ExitCode)
+        public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
         {
+            return 0;
             // Do nothing
         }
 
-        public void CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
+        public int ExitProcess(uint ExitCode)
         {
+            return 0;
             // Do nothing
         }
 
-        public void ExitProcess(uint ExitCode)
+        public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
         {
+            return 0;
             // Do nothing
         }
 
-        public void LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
+        public int UnloadModule(string ImageBaseName, ulong BaseOffset)
         {
+            return 0;
             // Do nothing
         }
 
-        public void UnloadModule(string ImageBaseName, ulong BaseOffset)
+        public int SystemError(uint Error, uint Level)
         {
+            return 0;
             // Do nothing
         }
 
-        public void SystemError(uint Error, uint Level)
+        public int SessionStatus(uint Status)
         {
+            return 0;
             // Do nothing
         }
 
-        public void SessionStatus(uint Status)
+        public int ChangeDebuggeeState(uint Flags, ulong Argument)
         {
+            return 0;
             // Do nothing
         }
 
-        public void ChangeDebuggeeState(uint Flags, ulong Argument)
+        public int ChangeEngineState(uint Flags, ulong Argument)
         {
+            return 0;
             // Do nothing
         }
 
-        public void ChangeEngineState(uint Flags, ulong Argument)
+        public int ChangeSymbolState(uint Flags, ulong Argument)
         {
             // Do nothing
-        }
-
-        public void ChangeSymbolState(uint Flags, ulong Argument)
-        {
-            // Do nothing
+            return 0;
         }
         #endregion
 

@@ -21,6 +21,17 @@ namespace DbgEngTest
             Context.Initalize(client);
         }
 
+        /// <summary>
+        /// Initializes the test class with specified executable.
+        /// </summary>
+        /// <param name="processPath">Path to the process.</param>
+        /// <param name="symbolPath">The symbol path.</param>
+        protected static void InitializeAttachProcess(string processPath, string symbolPath)
+        {
+            client = DebugClient.OpenExecutable(processPath, symbolPath);
+            Context.Initalize(client);
+        }
+
         protected StackFrame GetFrame(string functionName)
         {
             foreach (var frame in Thread.Current.StackTrace.Frames)

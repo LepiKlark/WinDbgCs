@@ -26,6 +26,26 @@ namespace DbgEngManaged
         }
 
         /// <summary>
+        /// Starts the process from specified path under debugger.
+        /// </summary>
+        /// <param name="processPath">Path to executable.</param>
+        /// <param name="symbolPath">The symbol path.</param>
+        /// <returns></returns>
+        public static IDebugClient OpenExecutable(string processPath, string symbolPath)
+        {
+            IDebugClient client = DebugCreateEx(0x60);
+
+            ((IDebugSymbols5)client).SetSymbolPathWide(symbolPath);
+            ((IDebugClient7)client).CreateProcessAndAttach(0, processPath, 2);
+
+            ((IDebugControl7)client).WaitForEvent(0, uint.MaxValue);
+            ((IDebugSymbols5)client).SetSymbolPathWide(symbolPath);
+            ((IDebugControl7)client).Execute(0, ".reload -f", 0);
+
+            return client;
+        }
+
+        /// <summary>
         /// The DebugCreate function creates a new client object and returns an interface pointer to it.
         /// </summary>
         public static IDebugClient DebugCreate()
