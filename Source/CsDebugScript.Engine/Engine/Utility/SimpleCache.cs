@@ -70,6 +70,9 @@ namespace CsDebugScript.Engine.Utility
         {
             get
             {
+                // Hack not to cache.
+                //
+                value = populateAction();
                 if (!Cached)
                 {
                     lock(this)
