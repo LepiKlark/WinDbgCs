@@ -114,12 +114,9 @@ namespace CsDebugScript.Engine.Test
             // Flags are create flags.
             //
             //DEBUG_ATTACH_INVASIVE_NO_INITIAL_BREAK
-            _DEBUG_CREATE_PROCESS_OPTIONS options = new _DEBUG_CREATE_PROCESS_OPTIONS();
-
-            options.CreateFlags = 0x00000002  /* Debug only this process */ ;
 
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
-                  @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", options.CreateFlags, 0, 0);
+                  @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", 0x00000002 , 0, 0);
 
             uint execStatus = ((IDebugControl7)client).GetExecutionStatus();
             Console.WriteLine("Execution status - {0}", execStatus);
