@@ -3,6 +3,7 @@ using CsDebugScript.Engine.Utility;
 using DbgEngManaged;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace CsDebugScript.Engine.Test
 {
@@ -69,9 +70,7 @@ namespace CsDebugScript.Engine.Test
 
             public int Breakpoint(IDebugBreakpoint Bp)
             {
-                Console.WriteLine("Break point has been hit.");
-
-                return 0;
+                throw new NotImplementedException();
             }
 
             public int ChangeDebuggeeState(uint Flags, ulong Argument)
@@ -82,7 +81,7 @@ namespace CsDebugScript.Engine.Test
 
                 Console.WriteLine($"Execution status {executionStatus}");
 
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int ChangeEngineState(uint Flags, ulong Argument)
@@ -98,7 +97,7 @@ namespace CsDebugScript.Engine.Test
             public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
             {
                 Console.WriteLine("Calling Create Process {0}", ImageName);
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
@@ -109,7 +108,7 @@ namespace CsDebugScript.Engine.Test
             public int Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
             {
                 Console.WriteLine("Exception happened {0} -  First Change {1}", Exception, FirstChance);
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int ExitProcess(uint ExitCode)
@@ -134,13 +133,13 @@ namespace CsDebugScript.Engine.Test
             public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
             {
                 Console.WriteLine("Loaded module {0}", ModuleName);
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int SessionStatus(uint Status)
             {
                 Console.WriteLine("Session status is {0}", Status);
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int SystemError(uint Error, uint Level)
@@ -151,8 +150,31 @@ namespace CsDebugScript.Engine.Test
             public int UnloadModule(string ImageBaseName, ulong BaseOffset)
             {
                 Console.WriteLine("Module unload {0}", ImageBaseName);
-                return 0;
+                return (int)Defines.DebugStatusNoChange;
             }
+        }
+
+        public static Task Go(IDebugClient client)
+        {
+            var c = client.CreateClient();
+            ((IDebugControl7)c).Execute(0, "g", 0);
+
+            // Queue task which will wait for this event to finish.
+            //
+            Task t = new System.Threading.Tasks.Task(() =>
+            {
+                ((IDebugControl7)c).WaitForEvent(0, UInt32.MaxValue);
+
+                Console.WriteLine("Event captured!!!");
+            });
+
+            return t;
+        }
+
+        public static void Break(IDebugClient client)
+        {
+            var c = client.CreateClient();
+            ((IDebugControl7)c).SetInterrupt(0);
         }
 
         public static IDebugClient OpenDebugSession(string symbolPath)
@@ -182,9 +204,8 @@ namespace CsDebugScript.Engine.Test
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
                   @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", 0x00000002 , 0, 0);
 
-            uint execStatus = ((IDebugControl7)client).GetExecutionStatus();
-            Console.WriteLine("Execution status - {0}", execStatus);
 
+            // Printing the state...
             ((IDebugControl7)client).WaitForEvent(0, UInt32.MaxValue);
 
             // Print state before starting debugger.
@@ -193,22 +214,21 @@ namespace CsDebugScript.Engine.Test
 
             Console.WriteLine("go...");
 
-            ((IDebugControl)client).Execute(0, "g", 0);
 
-            System.Threading.Tasks.Task t = new System.Threading.Tasks.Task(() =>
-            {
-                var client2 = client.CreateClient();
-                System.Threading.Thread.Sleep(5000);
-
-                Console.WriteLine("thread2 interrupt");
-                ((IDebugControl7)client).SetInterrupt(0);
-            });
+            // Actual test
+            Task t = Go(client);
 
             t.Start();
 
-            ((IDebugControl7)client).WaitForEvent(0, uint.MaxValue);
+            System.Threading.Thread.Sleep(2000);
+
+            Break(client);
+
+            t.Wait();
 
             PrintDebugeeState(client);
+
+            // Actual test
 
             return client;
         }
