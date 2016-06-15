@@ -25,41 +25,6 @@ namespace CsDebugScript.Engine.Test
             var control = (IDebugControl7)client;
 
             return;
-
-            Options options = null;
-
-            Parser.Default.ParseArguments<Options>(args)
-                .WithParsed(o => options = o);
-
-            if (options == null)
-                return;
-
-            Context.Initalize(DebugClient.OpenDumpFile(options.DumpPath, options.SymbolPath));
-
-            Console.WriteLine("Threads: {0}", Thread.All.Length);
-            Console.WriteLine("Current thread: {0}", Thread.Current.Id);
-            var frames = Thread.Current.StackTrace.Frames;
-            Console.WriteLine("Call stack:");
-            foreach (var frame in frames)
-                try
-                {
-                    Console.WriteLine("  {0,3:x} {1}+0x{2:x}   ({3}:{4})", frame.FrameNumber, frame.FunctionName, frame.FunctionDisplacement, frame.SourceFileName, frame.SourceFileLine);
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("  {0,3:x} {1}+0x{2:x}", frame.FrameNumber, frame.FunctionName, frame.FunctionDisplacement);
-                }
-
-            // In order to use console output and error in scripts, we must set it to debug client
-            DebugOutput captureFlags = DebugOutput.Normal | DebugOutput.Error | DebugOutput.Warning | DebugOutput.Verbose
-                | DebugOutput.Prompt | DebugOutput.PromptRegisters | DebugOutput.ExtensionWarning | DebugOutput.Debuggee
-                | DebugOutput.DebuggeePrompt | DebugOutput.Symbols | DebugOutput.Status;
-            var callbacks = DebuggerOutputToTextWriter.Create(Console.Out, captureFlags);
-
-            using (OutputCallbacksSwitcher switcher = OutputCallbacksSwitcher.Create(callbacks))
-            {
-                Executor.Execute(@"..\..\..\samples\script.csx");
-            }
         }
 
         public static void PrintDebugeeState(IDebugClient client)
@@ -96,6 +61,100 @@ namespace CsDebugScript.Engine.Test
             Console.WriteLine("-----------------------------");
         }
 
+        // Debugger state machine.
+        //
+        class DebugCallbacks : IDebugEventCallbacks
+        {
+            public IDebugClient Client { get; set; }
+
+            public int Breakpoint(IDebugBreakpoint Bp)
+            {
+                Console.WriteLine("Break point has been hit.");
+
+                return 0;
+            }
+
+            public int ChangeDebuggeeState(uint Flags, ulong Argument)
+            {
+                Console.WriteLine("Changing debuggee state.");
+
+                uint executionStatus = ((IDebugControl7)Client).GetExecutionStatus();
+
+                Console.WriteLine($"Execution status {executionStatus}");
+
+                return 0;
+            }
+
+            public int ChangeEngineState(uint Flags, ulong Argument)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int ChangeSymbolState(uint Flags, ulong Argument)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
+            {
+                Console.WriteLine("Calling Create Process {0}", ImageName);
+                return 0;
+            }
+
+            public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
+            {
+                Console.WriteLine("Exception happened {0} -  First Change {1}", Exception, FirstChance);
+                return 0;
+            }
+
+            public int ExitProcess(uint ExitCode)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int ExitThread(uint ExitCode)
+            {
+                throw new NotImplementedException();
+            }
+
+            public uint GetInterestMask()
+            {
+                DebugOutput captureFlags = DebugOutput.Normal | DebugOutput.Error | DebugOutput.Warning | DebugOutput.Verbose
+                | DebugOutput.Prompt | DebugOutput.PromptRegisters | DebugOutput.ExtensionWarning | DebugOutput.Debuggee
+                | DebugOutput.DebuggeePrompt | DebugOutput.Symbols | DebugOutput.Status;
+
+                return (uint)captureFlags;
+            }
+
+            public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
+            {
+                Console.WriteLine("Loaded module {0}", ModuleName);
+                return 0;
+            }
+
+            public int SessionStatus(uint Status)
+            {
+                Console.WriteLine("Session status is {0}", Status);
+                return 0;
+            }
+
+            public int SystemError(uint Error, uint Level)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int UnloadModule(string ImageBaseName, ulong BaseOffset)
+            {
+                Console.WriteLine("Module unload {0}", ImageBaseName);
+                return 0;
+            }
+        }
+
         public static IDebugClient OpenDebugSession(string symbolPath)
         {
 
@@ -114,6 +173,11 @@ namespace CsDebugScript.Engine.Test
             // Flags are create flags.
             //
             //DEBUG_ATTACH_INVASIVE_NO_INITIAL_BREAK
+
+            DebugCallbacks callbacks = new DebugCallbacks();
+            callbacks.Client = client;
+
+            client.SetEventCallbacks(callbacks);
 
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
                   @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", 0x00000002 , 0, 0);
