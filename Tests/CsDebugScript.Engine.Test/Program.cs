@@ -165,7 +165,7 @@ namespace CsDebugScript.Engine.Test
             {
                 ((IDebugControl7)c).WaitForEvent(0, UInt32.MaxValue);
 
-                Console.WriteLine("Event captured!!!");
+                Console.WriteLine("\n=============\nEvent captured!!! Task created in Go finished WaitForEvent wait.\n============\n");
             });
 
             return t;
@@ -199,6 +199,17 @@ namespace CsDebugScript.Engine.Test
             DebugCallbacks callbacks = new DebugCallbacks();
             callbacks.Client = client;
 
+            // Task t = new Task(() =>
+            // {
+            //     while (true)
+            //     {
+            //         ((IDebugControl7)client).WaitForEvent(0, UInt32.MaxValue);
+            //     }
+
+            // });
+
+            // t.Start();
+
             client.SetEventCallbacks(callbacks);
 
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
@@ -225,6 +236,8 @@ namespace CsDebugScript.Engine.Test
             Break(client);
 
             t.Wait();
+
+            Console.WriteLine("\n=====================\nMain thread got the event that go task finished.\n===============\n");
 
             PrintDebugeeState(client);
 
