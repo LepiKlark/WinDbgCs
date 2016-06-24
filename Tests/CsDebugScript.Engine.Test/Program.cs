@@ -79,6 +79,20 @@ namespace CsDebugScript.Engine.Test
 
                 uint executionStatus = ((IDebugControl7)Client).GetExecutionStatus();
 
+                if (executionStatus == (uint)Defines.DebugStatusBreak)
+                {
+                    Console.WriteLine("break state");
+
+                    return (int)executionStatus;
+                }
+                else if (executionStatus == (uint)Defines.DebugStatusGo)
+                {
+                    Console.WriteLine("go state");
+                    s_ClientGo.Set();
+
+                    return (int)executionStatus;
+                }
+
                 Console.WriteLine($"Execution status {executionStatus}");
 
                 return (int)Defines.DebugStatusNoChange;
@@ -102,7 +116,8 @@ namespace CsDebugScript.Engine.Test
 
             public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
             {
-                throw new NotImplementedException();
+                Console.WriteLine("Creating a thread");
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int Exception(ref _EXCEPTION_RECORD64 Exception, uint FirstChance)
@@ -113,12 +128,15 @@ namespace CsDebugScript.Engine.Test
 
             public int ExitProcess(uint ExitCode)
             {
-                throw new NotImplementedException();
+                Console.WriteLine("Exit process with error code {0}", ExitCode);
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public int ExitThread(uint ExitCode)
             {
-                throw new NotImplementedException();
+                Console.WriteLine("Thread exiting with exit code {0}", ExitCode);
+
+                return (int)Defines.DebugStatusNoChange;
             }
 
             public uint GetInterestMask()
@@ -154,31 +172,44 @@ namespace CsDebugScript.Engine.Test
             }
         }
 
-        public static Task Go(IDebugClient client)
+        public static void Go(IDebugClient client)
         {
-            var c = client.CreateClient();
-            ((IDebugControl7)c).Execute(0, "g", 0);
-
-            // Queue task which will wait for this event to finish.
+            // Wait for debugger to break.
             //
-            Task t = new System.Threading.Tasks.Task(() =>
-            {
-                ((IDebugControl7)c).WaitForEvent(0, UInt32.MaxValue);
 
-                Console.WriteLine("\n=============\nEvent captured!!! Task created in Go finished WaitForEvent wait.\n============\n");
-            });
+            // I could assert here that client is in break state.
+            //
 
-            return t;
+
+            s_ClientBreak.WaitOne();
+
+            var c = client.CreateClient();
+            Console.WriteLine("doing go");
+            ((IDebugControl7)c).Execute(0, "g", 0);
         }
 
         public static void Break(IDebugClient client)
         {
+            Console.WriteLine("doing break");
+
+            s_ClientGo.Reset();
+
             var c = client.CreateClient();
             ((IDebugControl7)c).SetInterrupt(0);
+
+            // Wait for debugger to break.
+            //
+            s_ClientBreak.WaitOne();
         }
+
+        public static System.Threading.AutoResetEvent s_ClientBreak = new System.Threading.AutoResetEvent(false);
+        public static System.Threading.AutoResetEvent s_ClientGo = new System.Threading.AutoResetEvent(false);
+        public static Object lock_obj = new object();
 
         public static IDebugClient OpenDebugSession(string symbolPath)
         {
+            // Ok see where does this get set.
+            // Defines.DebugStatusBreak;
 
             IDebugClient client;
             int hresult = DebugCreateEx(Marshal.GenerateGuidForType(typeof(IDebugClient)), 0x100000, out client);
@@ -199,45 +230,85 @@ namespace CsDebugScript.Engine.Test
             DebugCallbacks callbacks = new DebugCallbacks();
             callbacks.Client = client;
 
-            // Task t = new Task(() =>
-            // {
-            //     while (true)
-            //     {
-            //         ((IDebugControl7)client).WaitForEvent(0, UInt32.MaxValue);
-            //     }
-
-            // });
 
             // t.Start();
 
-            client.SetEventCallbacks(callbacks);
 
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
                   @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", 0x00000002 , 0, 0);
 
 
-            // Printing the state...
+            // Wait for debugger to get attached...
             ((IDebugControl7)client).WaitForEvent(0, UInt32.MaxValue);
+
+            // Set up main task which will handle wait for event.
+            // Think about how to setup interactions with colling threads.
+            var t = new System.Threading.Thread(() =>
+            {
+                bool hasClientExited = false;
+
+                var loopClient = client.CreateClient();
+
+
+                //loopClient.SetEventCallbacks(callbacks);
+
+                while (!hasClientExited)
+                {
+                    uint executionStatus = 0;
+
+                    // Todo we may want to have more finely grained control on errors returned by wait for event.
+                    //
+
+                    Console.WriteLine("------Loop thread is waiting on event---------");
+                    ((IDebugControl7)loopClient).WaitForEvent(0, UInt32.MaxValue);
+
+                    executionStatus = ((IDebugControl7)loopClient).GetExecutionStatus();
+
+                    while (executionStatus == (uint)Defines.DebugStatusBreak)
+                    {
+                        s_ClientBreak.Set();
+
+                        // Signal client can proceed and wait.
+                        //
+
+                        // Wait for unblock command.
+                        //
+                        s_ClientGo.WaitOne();
+
+                        executionStatus = ((IDebugControl7)loopClient).GetExecutionStatus();
+                    }
+
+                    hasClientExited = ((IDebugControl7)loopClient).GetExecutionStatus() == (uint)Defines.DebugStatusNoDebuggee;
+
+                    if (hasClientExited)
+                    {
+                        Console.WriteLine("Debugger exiting");
+                    }
+
+                }
+            })
+            { IsBackground = true };
+
+
 
             // Print state before starting debugger.
             //
+
             PrintDebugeeState(client);
 
-            Console.WriteLine("go...");
-
-
-            // Actual test
-            Task t = Go(client);
 
             t.Start();
 
+            System.Threading.Thread.Sleep(1000 * 1000);
+
+            // Actual test
+            Go(client);
+
+            // Wait for some time.
+            //
             System.Threading.Thread.Sleep(2000);
 
             Break(client);
-
-            t.Wait();
-
-            Console.WriteLine("\n=====================\nMain thread got the event that go task finished.\n===============\n");
 
             PrintDebugeeState(client);
 
