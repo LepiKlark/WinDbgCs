@@ -46,6 +46,8 @@ namespace CsDebugScript.Engine.Test
 
             foreach (var thread in Thread.All)
             {
+                Console.WriteLine("This thread has {0} frames", thread.StackTrace.Frames.Length);
+
                 foreach (var frame in thread.StackTrace.Frames)
                 {
                     try
@@ -172,47 +174,42 @@ namespace CsDebugScript.Engine.Test
             }
         }
 
-        public static void Go(IDebugClient client)
+        public class DebuggerControl
         {
-            // Wait for debugger to break.
-            //
+            private IDebugClient _client;
 
-            // I could assert here that client is in break state.
-            //
+            public DebuggerControl(IDebugClient client)
+            {
+                _client = client.CreateClient();
+            }
 
+            public void Go()
+            {
+                s_ClientBreak.WaitOne();
+                ((IDebugControl7)_client).Execute(0, "g", 0);
+            }
 
-            s_ClientBreak.WaitOne();
+            public void Break()
+            {
+                s_ClientGo.Reset();
 
-            var c = client.CreateClient();
-            Console.WriteLine("doing go");
-            ((IDebugControl7)c).Execute(0, "g", 0);
+                ((IDebugControl7)_client).SetInterrupt(0);
+
+                // Wait for debugger to break.
+                //
+                s_ClientBreak.WaitOne();
+            }
         }
 
-        public static void Break(IDebugClient client)
-        {
-            Console.WriteLine("doing break");
-
-            s_ClientGo.Reset();
-
-            var c = client.CreateClient();
-            ((IDebugControl7)c).SetInterrupt(0);
-
-            // Wait for debugger to break.
-            //
-            s_ClientBreak.WaitOne();
-        }
 
         public static System.Threading.AutoResetEvent s_ClientBreak = new System.Threading.AutoResetEvent(false);
         public static System.Threading.AutoResetEvent s_ClientGo = new System.Threading.AutoResetEvent(false);
-        public static Object lock_obj = new object();
 
         public static IDebugClient OpenDebugSession(string symbolPath)
         {
-            // Ok see where does this get set.
-            // Defines.DebugStatusBreak;
 
             IDebugClient client;
-            int hresult = DebugCreateEx(Marshal.GenerateGuidForType(typeof(IDebugClient)), 0x100000, out client);
+            int hresult = DebugCreateEx(Marshal.GenerateGuidForType(typeof(IDebugClient)), 0x00000, out client);
 
             if (hresult > 0)
             {
@@ -223,23 +220,8 @@ namespace CsDebugScript.Engine.Test
             //          DEBUG_ENGOPT_FINAL_BREAK);
             ((IDebugControl7)client).SetEngineOptions(0xa0);
 
-            // Flags are create flags.
-            //
-            //DEBUG_ATTACH_INVASIVE_NO_INITIAL_BREAK
-
-            DebugCallbacks callbacks = new DebugCallbacks();
-            callbacks.Client = client;
-
-
-            // t.Start();
-
-
             ((IDebugClient7)client).CreateProcessAndAttachWide(0,
                   @"C:\Users\atomic\Documents\Visual Studio 2013\Projects\JustPlayC\x64\Debug\JustPlayC.exe", 0x00000002 , 0, 0);
-
-
-            // Wait for debugger to get attached...
-            ((IDebugControl7)client).WaitForEvent(0, UInt32.MaxValue);
 
             // Set up main task which will handle wait for event.
             // Think about how to setup interactions with colling threads.
@@ -249,8 +231,11 @@ namespace CsDebugScript.Engine.Test
 
                 var loopClient = client.CreateClient();
 
-
-                //loopClient.SetEventCallbacks(callbacks);
+                // Set debug callbacks.
+                //
+                DebugCallbacks callbacks = new DebugCallbacks();
+                callbacks.Client = loopClient;
+                loopClient.SetEventCallbacks(callbacks);
 
                 while (!hasClientExited)
                 {
@@ -278,41 +263,33 @@ namespace CsDebugScript.Engine.Test
                         executionStatus = ((IDebugControl7)loopClient).GetExecutionStatus();
                     }
 
-                    hasClientExited = ((IDebugControl7)loopClient).GetExecutionStatus() == (uint)Defines.DebugStatusNoDebuggee;
+                    hasClientExited = executionStatus == (uint)Defines.DebugStatusNoDebuggee;
 
                     if (hasClientExited)
                     {
                         Console.WriteLine("Debugger exiting");
                     }
-
                 }
             })
             { IsBackground = true };
 
-
-
-            // Print state before starting debugger.
-            //
-
-            PrintDebugeeState(client);
-
-
             t.Start();
 
-            System.Threading.Thread.Sleep(1000 * 1000);
+            DebuggerControl dbgControl = new DebuggerControl(client);
 
-            // Actual test
-            Go(client);
+            while (true)
+            {
+                // Actual test
+                dbgControl.Go();
 
-            // Wait for some time.
-            //
-            System.Threading.Thread.Sleep(2000);
+                // Wait for some time.
+                //
+                System.Threading.Thread.Sleep(2000);
 
-            Break(client);
+                dbgControl.Break();
 
-            PrintDebugeeState(client);
-
-            // Actual test
+                PrintDebugeeState(client);
+            }
 
             return client;
         }
