@@ -68,9 +68,16 @@ namespace CsDebugScript
         /// Casts void pointer to a specified type.
         /// </summary>
         /// <typeparam name="T">The type of element new pointer should point to.</typeparam>
-        public new CodePointer<T> CastAs<T>()
+        public CodePointer<T> ToCodePointer<T>()
         {
-            return new CodePointer<T>(this);
+            if (typeof(Variable).IsAssignableFrom(typeof(T)))
+            {
+                return new CodePointer<T>((Variable)CastAs(typeof(T)));
+            }
+            else
+            {
+                return new CodePointer<T>(this);
+            }
         }
 
         /// <summary>
