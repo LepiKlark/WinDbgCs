@@ -306,5 +306,12 @@ namespace CsDebugScript.Engine
         /// </summary>
         /// <param name="process">Process to Terminate.</param>
         void Terminate(Process process);
+
+        /// <summary>
+        /// Sets breakpoint with given expression.
+        /// </summary>
+        /// <param name="process">Process in which to set the breakpoint.</param>
+        /// <param name="expression">Expression to use when setting the breakpoint.</param>
+        void SetBreakpoint(Process process, string expression);
     }
 }

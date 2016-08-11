@@ -123,6 +123,23 @@ namespace DbgEngTest
             }
         }
 
+        static void BreakpointSimpleBody()
+        {
+            InitializeProcess(TestProcessPath, ProcessArguments, DefaultSymbolPath);
+            Diagnostics.Debug.WriteLine($"Process {TestProcessPath} started.");
+
+            Debugger.ContinueExecution();
+            System.Threading.Thread.Sleep(1000);
+            Debugger.BreakExecution();
+
+            // Set breakpoints here.
+            Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase");
+
+            Debugger.ContinueExecution();
+
+            System.Threading.Thread.Sleep(10000);
+        }
+
         /// <summary>
         /// Wrapper around actual tests which runs them in separate MTA thread
         /// in order to avoid problems with COM object sharing.
@@ -163,6 +180,12 @@ namespace DbgEngTest
         {
             // Not yet implemented.
             // ContinousTestExecutionWrapper(GoBreakMultipleProcessesBody);
+        }
+
+        [TestMethod]
+        public void BreakpointSimpleTest()
+        {
+            ContinousTestExecutionWrapper(BreakpointSimpleBody);
         }
 
     }

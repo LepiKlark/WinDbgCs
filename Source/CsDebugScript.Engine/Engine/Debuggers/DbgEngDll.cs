@@ -79,6 +79,8 @@ namespace CsDebugScript.Engine.Debuggers
         /// </summary>
         private static DictionaryCache<uint, DebuggeeFlowController> debugeeFlowControlers;
 
+        private static List<IDebugBreakpoint2> breakpointList;
+
         /// <summary>
         /// Static constructor.
         /// </summary>
@@ -90,6 +92,8 @@ namespace CsDebugScript.Engine.Debuggers
             debugeeFlowControlers =
                 new DictionaryCache<uint, DebuggeeFlowController>(
                     (processId) => new DebuggeeFlowController(ThreadClient));
+
+            breakpointList = new List<IDebugBreakpoint2>();
         }
 
         /// <summary>
@@ -1310,6 +1314,40 @@ namespace CsDebugScript.Engine.Debuggers
             flowControler.DebugStatusBreak.Set();
 
             flowControler.WaitForDebuggerLoopToExit();
+        }
+
+        public void SetBreakpoint(Process process, string expression, Action executeOnBreakpointHit)
+        {
+            using (var processSwitcher = new ProcessSwitcher(StateCache, process))
+            {
+                // For type there are two breakpoint types:
+                // Software breakpoint and Hardware breakpoint.
+                // Software breakpoint is implemented by modifying user's executable code.
+                // Hardware breakpoint is implemented by debugger engine instructing
+                // Targets processor to insert the breakpoint.
+                // TODO: Which one is to be used? I will start with software one.
+                IDebugBreakpoint2 bp = null;
+                unchecked
+                {
+                    bp = Control.AddBreakpoint2((uint)Defines.DebugBreakpointCode, (uint)Defines.DebugAnyId);
+                }
+
+                // At this point breakpoint is disabled in needs to be enabled
+                // by specifying flags DEBUG_BREAKPOINT_ENABLED in AddFlags.
+
+
+                bp.SetOffsetExpressionWide(expression);
+
+                ulong offset = bp.GetOffset();
+
+                bp.AddFlags((uint)Defines.DebugBreakpointEnabled);
+
+                uint breakpointId = bp.GetId();
+
+
+
+                breakpointList.Add(bp);
+            }
         }
 
         #region Native methods

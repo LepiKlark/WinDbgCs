@@ -514,6 +514,16 @@ namespace CsDebugScript.VS
         {
             throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// Sets breakpoint against given process..
+        /// </summary>
+        /// <param name="process">Process in which we are setting the breakpoint.</param>
+        /// <param name="expression">Expression used to determine the offset of the breakpoint.</param>
+        public void SetBreakpoint(Process process, string expression)
+        {
+            throw new NotImplementedException();
+        }
         #endregion
     }
 }

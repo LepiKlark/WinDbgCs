@@ -34,7 +34,9 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 
         public void Breakpoint(IDebugBreakpoint Bp)
         {
-            throw new NotImplementedException();
+            // TODO: Add breakpoint handling here.
+            //
+            Console.WriteLine("Breakpoint has been hit!!!");
         }
 
         /// <summary>
@@ -115,7 +117,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <returns></returns>
         public uint GetInterestMask()
         {
-            return (uint)Defines.DebugEventChangeDebuggeeState;
+            return (uint)Defines.DebugEventChangeDebuggeeState | (uint)Defines.DebugEventBreakpoint;
         }
     }
 }

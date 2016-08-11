@@ -629,6 +629,27 @@ namespace CsDebugScript
         {
             Context.Debugger.Terminate(process);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="process"></param>
+        /// <param name="expression"></param>
+        public static void SetBreakpoint(Process process, string expression)
+        {
+            Context.Debugger.SetBreakpoint(process, expression);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="process"></param>
+        /// <param name="expression"></param>
+        public static void SetBreakpoint(string expression)
+        {
+            Context.Debugger.SetBreakpoint(Process.Current, expression);
+        }
+
         #endregion
 
         /// <summary>
