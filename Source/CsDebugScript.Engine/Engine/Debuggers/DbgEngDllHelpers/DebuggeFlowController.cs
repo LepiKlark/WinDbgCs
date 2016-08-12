@@ -1,5 +1,6 @@
 ﻿using DbgEngManaged;
 using System;
+using CsDebugScript.Engine.Utility;
 
 namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 {
@@ -27,6 +28,12 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// Reference to debug client taken from DbgEng.
         /// </summary>
         private IDebugClient client;
+
+        /// <summary>
+        /// Reference to debug callbacks responsible to trigger actions
+        /// on debug events.
+        /// </summary>
+        private DebugCallbacks debugCallbacks;
 
         /// <summary>
         /// Syncronization signaling that debug callbacks are installed.
@@ -68,7 +75,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         {
             bool hasClientExited = false;
             IDebugControl7 loopControl = (IDebugControl7)client;
-            DebugCallbacks eventCallbacks = new DebugCallbacks(client, DebugStatusGo);
+            debugCallbacks = new DebugCallbacks(client, DebugStatusGo, DebugStatusBreak);
 
             lock (eventCallbacksReady)
             {
@@ -102,6 +109,15 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         public void WaitForDebuggerLoopToExit()
         {
             debuggerStateLoop.Join();
+        }
+
+        /// <summary>
+        /// Adds new breakpoint to debug callbacks.
+        /// </summary>
+        /// <param name="breakpoint"></param>
+        public void AddBreakpoint(ManagedBreakpoint breakpoint)
+        {
+            debugCallbacks.AddBreakpoint(breakpoint);
         }
     }
 }

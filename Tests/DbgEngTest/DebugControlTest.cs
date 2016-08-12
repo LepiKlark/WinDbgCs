@@ -128,16 +128,47 @@ namespace DbgEngTest
             InitializeProcess(TestProcessPath, ProcessArguments, DefaultSymbolPath);
             Diagnostics.Debug.WriteLine($"Process {TestProcessPath} started.");
 
-            Debugger.ContinueExecution();
-            System.Threading.Thread.Sleep(1000);
-            Debugger.BreakExecution();
+            // Debugger.ContinueExecution();
+            // System.Threading.Thread.Sleep(1000);
+            // Debugger.BreakExecution();
+
+            // Stacktrace should everytime be greater for one.
+            int lastStackDepth = 0;
+
+            Action action = () =>
+            {
+                Diagnostics.Debug.WriteLine("Current thread {0}", Thread.Current.Id);
+
+                // TODO: DbgEng caches the current thread.
+                // Current cache purge is not enough.
+                // If I use Thread.Current it will point to cached value.
+
+                Thread mainThread = FindThreadHostingMain();
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                foreach (var frame in mainThread.StackTrace.Frames)
+                {
+                    sb.AppendLine(frame.FunctionName);
+                }
+
+                Diagnostics.Debug.WriteLine("Callstack: {0}", sb.ToString());
+
+                int numberOfInfiniteRecursionCallsOnStack =
+                    mainThread.StackTrace.Frames.Where(
+                        f => f.FunctionName.Contains("InfiniteRecursionTestCase")).Count();
+
+                Assert.AreEqual(numberOfInfiniteRecursionCallsOnStack, lastStackDepth + 1);
+                lastStackDepth++;
+            };
 
             // Set breakpoints here.
-            Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase");
+            Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase", action);
 
             Debugger.ContinueExecution();
 
-            System.Threading.Thread.Sleep(10000);
+            System.Threading.Thread.Sleep(3000);
+
+            // Need to break execution before calling Terminate.
+            Debugger.BreakExecution();
         }
 
         /// <summary>

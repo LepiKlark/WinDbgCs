@@ -650,6 +650,11 @@ namespace CsDebugScript
             Context.Debugger.SetBreakpoint(Process.Current, expression);
         }
 
+        public static void SetBreakpoint(string expression, Action action)
+        {
+            Context.Debugger.SetBreakpoint(Process.Current, expression, action);
+        }
+
         #endregion
 
         /// <summary>

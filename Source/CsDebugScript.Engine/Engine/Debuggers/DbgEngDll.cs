@@ -79,8 +79,6 @@ namespace CsDebugScript.Engine.Debuggers
         /// </summary>
         private static DictionaryCache<uint, DebuggeeFlowController> debugeeFlowControlers;
 
-        private static List<IDebugBreakpoint2> breakpointList;
-
         /// <summary>
         /// Static constructor.
         /// </summary>
@@ -92,8 +90,6 @@ namespace CsDebugScript.Engine.Debuggers
             debugeeFlowControlers =
                 new DictionaryCache<uint, DebuggeeFlowController>(
                     (processId) => new DebuggeeFlowController(ThreadClient));
-
-            breakpointList = new List<IDebugBreakpoint2>();
         }
 
         /// <summary>
@@ -1303,7 +1299,8 @@ namespace CsDebugScript.Engine.Debuggers
         /// </summary>
         public void Terminate(Process process)
         {
-            Client.EndSession((uint)Defines.DebugEndActiveTerminate);
+
+            Client.EndSession((uint)Defines.DebugEndActiveDetach);
 
             DebuggeeFlowController flowControler;
             debugeeFlowControlers.RemoveEntry(process.Id, out flowControler);
@@ -1316,6 +1313,11 @@ namespace CsDebugScript.Engine.Debuggers
             flowControler.WaitForDebuggerLoopToExit();
         }
 
+        public void SetBreakpoint(Process process, string expression)
+        {
+            throw new NotImplementedException();
+        }
+
         public void SetBreakpoint(Process process, string expression, Action executeOnBreakpointHit)
         {
             using (var processSwitcher = new ProcessSwitcher(StateCache, process))
@@ -1326,27 +1328,17 @@ namespace CsDebugScript.Engine.Debuggers
                 // Hardware breakpoint is implemented by debugger engine instructing
                 // Targets processor to insert the breakpoint.
                 // TODO: Which one is to be used? I will start with software one.
-                IDebugBreakpoint2 bp = null;
+                IDebugBreakpoint2 nativeBreakpoint = null;
                 unchecked
                 {
-                    bp = Control.AddBreakpoint2((uint)Defines.DebugBreakpointCode, (uint)Defines.DebugAnyId);
+                    nativeBreakpoint = Control.AddBreakpoint2((uint)Defines.DebugBreakpointCode, (uint)Defines.DebugAnyId);
                 }
 
-                // At this point breakpoint is disabled in needs to be enabled
-                // by specifying flags DEBUG_BREAKPOINT_ENABLED in AddFlags.
+                nativeBreakpoint.SetOffsetExpressionWide(expression);
+                nativeBreakpoint.AddFlags((uint)Defines.DebugBreakpointEnabled);
+                ManagedBreakpoint breakpoint = new ManagedBreakpoint(nativeBreakpoint, executeOnBreakpointHit, process);
 
-
-                bp.SetOffsetExpressionWide(expression);
-
-                ulong offset = bp.GetOffset();
-
-                bp.AddFlags((uint)Defines.DebugBreakpointEnabled);
-
-                uint breakpointId = bp.GetId();
-
-
-
-                breakpointList.Add(bp);
+                debugeeFlowControlers[process.Id].AddBreakpoint(breakpoint);
             }
         }
 

@@ -308,10 +308,19 @@ namespace CsDebugScript.Engine
         void Terminate(Process process);
 
         /// <summary>
-        /// Sets breakpoint with given expression.
+        /// Sets breakpoint with given expression. Breaks execution when breakpoint is hit.
         /// </summary>
         /// <param name="process">Process in which to set the breakpoint.</param>
         /// <param name="expression">Expression to use when setting the breakpoint.</param>
         void SetBreakpoint(Process process, string expression);
+
+        /// <summary>
+        /// Sets breakpoint with given expression and executes given action when
+        /// break point is hit.
+        /// </summary>
+        /// <param name="process">Process in which to set the breakpoint.</param>
+        /// <param name="expression">Expression to use when setting the breakpoint.</param>
+        /// <param name="action">Action to execute when breakpoint is hit.</param>
+        void SetBreakpoint(Process process, string expression, Action action);
     }
 }

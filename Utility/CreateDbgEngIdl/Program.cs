@@ -299,6 +299,13 @@ namespace CreateDbgEngIdl
                                         int outParameters = 0;
                                         bool forbidOptional = false;
 
+                                        // Breakpoint needs to return hresult saying
+                                        // whether caller is supposed to continue running or not.
+                                        if (methodName == "Breakpoint" && interfaceName == "IDebugEventCallbacks")
+                                        {
+                                            returnValue = "int";
+                                        }
+
                                         if (parametersString.Contains("..."))
                                         {
                                             returnValue = "[vararg] " + returnValue;

@@ -1,5 +1,7 @@
 ﻿using DbgEngManaged;
 using System;
+using CsDebugScript.Engine.Utility;
+using System.Collections.Generic;
 
 namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 {
@@ -16,15 +18,39 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         private IDebugClient client;
 
         /// <summary>
+        /// Dictionary containing all breakpoints.
+        /// </summary>
+        private Dictionary<uint, ManagedBreakpoint> breakpoints = new Dictionary<uint, ManagedBreakpoint>();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="DebugCallbacks"/> class.
         /// </summary>
         /// <param name="client">IDebugClient interface.</param>
         /// <param name="debugStatusGoEvent">Event used to signal when debuggee switches to release state.</param>
-        public DebugCallbacks(IDebugClient client, System.Threading.AutoResetEvent debugStatusGoEvent)
+        public DebugCallbacks(IDebugClient client, System.Threading.AutoResetEvent debugStatusGoEvent, System.Threading.AutoResetEvent debugStatusBreakEvent)
         {
             this.client = client;
             this.debugStatusGoEvent = debugStatusGoEvent;
+            this.debugStatusBreakEvent = debugStatusBreakEvent;
             this.client.SetEventCallbacks(this);
+        }
+
+        /// <summary>
+        /// Creates new breakpoint.
+        /// </summary>
+        /// <param name="breakpoint"></param>
+        public void AddBreakpoint(ManagedBreakpoint breakpoint)
+        {
+            breakpoints.Add(breakpoint.GetId(), breakpoint);
+        }
+
+        /// <summary>
+        /// Removes specified breakpoint.
+        /// </summary>
+        /// <param name="breakpoint"></param>
+        public void RemoveBreakpoint(ManagedBreakpoint breakpoint)
+        {
+            breakpoints.Remove(breakpoint.GetId());
         }
 
         /// <summary>
@@ -32,11 +58,20 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// </summary>
         private System.Threading.AutoResetEvent debugStatusGoEvent;
 
-        public void Breakpoint(IDebugBreakpoint Bp)
+        /// <summary>
+        /// Event used to signal break state.
+        /// </summary>
+        private System.Threading.AutoResetEvent debugStatusBreakEvent;
+
+        public int Breakpoint(IDebugBreakpoint Bp)
         {
-            // TODO: Add breakpoint handling here.
-            //
-            Console.WriteLine("Breakpoint has been hit!!!");
+            uint breakpointId = Bp.GetId();
+
+            breakpoints[breakpointId].ExecutionAction();
+
+            // TODO: Return break/continue.
+
+            return (int)Defines.DebugStatusGo;
         }
 
         /// <summary>
