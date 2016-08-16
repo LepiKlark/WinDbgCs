@@ -20,7 +20,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <summary>
         /// Dictionary containing all breakpoints.
         /// </summary>
-        private Dictionary<uint, ManagedBreakpoint> breakpoints = new Dictionary<uint, ManagedBreakpoint>();
+        private Dictionary<uint, DbgEngBreakpoint> breakpoints = new Dictionary<uint, DbgEngBreakpoint>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DebugCallbacks"/> class.
@@ -39,7 +39,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// Creates new breakpoint.
         /// </summary>
         /// <param name="breakpoint"></param>
-        public void AddBreakpoint(ManagedBreakpoint breakpoint)
+        public void AddBreakpoint(DbgEngBreakpoint breakpoint)
         {
             breakpoints.Add(breakpoint.GetId(), breakpoint);
         }
@@ -48,7 +48,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// Removes specified breakpoint.
         /// </summary>
         /// <param name="breakpoint"></param>
-        public void RemoveBreakpoint(ManagedBreakpoint breakpoint)
+        public void RemoveBreakpoint(DbgEngBreakpoint breakpoint)
         {
             breakpoints.Remove(breakpoint.GetId());
         }

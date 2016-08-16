@@ -1,4 +1,5 @@
-﻿using CsDebugScript.Engine.Marshaling;
+﻿using CsDebugScript.Engine;
+using CsDebugScript.Engine.Marshaling;
 using CsDebugScript.Engine.Utility;
 using System;
 using System.Linq;
@@ -520,7 +521,7 @@ namespace CsDebugScript.VS
         /// </summary>
         /// <param name="process">Process in which we are setting the breakpoint.</param>
         /// <param name="expression">Expression used to determine the offset of the breakpoint.</param>
-        public void SetBreakpoint(Process process, string expression)
+        public IBreakpoint SetBreakpoint(Process process, string expression)
         {
             throw new NotImplementedException();
         }
@@ -531,7 +532,7 @@ namespace CsDebugScript.VS
         /// <param name="process">Process in which we are setting the breakpoint.</param>
         /// <param name="expression">Expression used to determine the offset of the breakpoint.</param>
         /// <param name="action">Action to be executed when breakpoint is hit.</param>
-        public void SetBreakpoint(Process process, string expression, Action action)
+        public IBreakpoint SetBreakpoint(Process process, string expression, Action action)
         {
             throw new NotImplementedException();
         }

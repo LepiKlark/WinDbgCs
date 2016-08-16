@@ -88,8 +88,9 @@
     <Compile Include="CodeType.cs" />
     <Compile Include="Engine\Debuggers\DbgEngDllHelpers\DebugCallbacks.cs" />
     <Compile Include="Engine\Debuggers\DbgEngDllHelpers\DebuggeFlowController.cs" />
+    <Compile Include="Engine\IBreakpoint.cs" />
     <Compile Include="Engine\Utility\CacheInvalidator.cs" />
-    <Compile Include="Engine\Utility\ManagedBreakpoint.cs" />
+    <Compile Include="Engine\Debuggers\DbgEngDllHelpers\DbgEngBreakpoint.cs" />
     <Compile Include="Exceptions\InvalidMemoryAddressException.cs" />
     <Compile Include="Exceptions\NotAllMemoryCanBeReadException.cs" />
     <Compile Include="Exceptions\WrongCodeTypeException.cs" />

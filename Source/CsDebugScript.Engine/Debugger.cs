@@ -645,14 +645,20 @@ namespace CsDebugScript
         /// </summary>
         /// <param name="process"></param>
         /// <param name="expression"></param>
-        public static void SetBreakpoint(string expression)
+        public static IBreakpoint SetBreakpoint(string expression)
         {
-            Context.Debugger.SetBreakpoint(Process.Current, expression);
+            return Context.Debugger.SetBreakpoint(Process.Current, expression);
         }
 
-        public static void SetBreakpoint(string expression, Action action)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public static IBreakpoint SetBreakpoint(string expression, Action action)
         {
-            Context.Debugger.SetBreakpoint(Process.Current, expression, action);
+            return Context.Debugger.SetBreakpoint(Process.Current, expression, action);
         }
 
         #endregion

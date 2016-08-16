@@ -128,20 +128,16 @@ namespace DbgEngTest
             InitializeProcess(TestProcessPath, ProcessArguments, DefaultSymbolPath);
             Diagnostics.Debug.WriteLine($"Process {TestProcessPath} started.");
 
-            // Debugger.ContinueExecution();
-            // System.Threading.Thread.Sleep(1000);
-            // Debugger.BreakExecution();
-
             // Stacktrace should everytime be greater for one.
             int lastStackDepth = 0;
 
             Action action = () =>
             {
-                Diagnostics.Debug.WriteLine("Current thread {0}", Thread.Current.Id);
-
                 // TODO: DbgEng caches the current thread.
                 // Current cache purge is not enough.
                 // If I use Thread.Current it will point to cached value.
+                // I would expect that breakpoint hit would set current thread to the
+                // one that hit the breakpoint.
 
                 Thread mainThread = FindThreadHostingMain();
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -161,10 +157,32 @@ namespace DbgEngTest
             };
 
             // Set breakpoints here.
-            Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase", action);
+            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase", action);
 
             Debugger.ContinueExecution();
 
+            System.Threading.Thread.Sleep(3000);
+
+            Debugger.BreakExecution();
+
+            // Disable breakpoint and assure it doesn't get hit..
+            //
+            breakpoint.Disable();
+
+            Debugger.ContinueExecution();
+            System.Threading.Thread.Sleep(3000);
+            Debugger.BreakExecution();
+
+            int numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable =
+                FindThreadHostingMain().StackTrace.Frames.Where(
+                    f => f.FunctionName.Contains("InfiniteRecursionTestCase")).Count();
+
+            Assert.IsTrue(numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable > (lastStackDepth + 2));
+            lastStackDepth = numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable;
+
+            // Enable again.
+            breakpoint.Enable();
+            Debugger.ContinueExecution();
             System.Threading.Thread.Sleep(3000);
 
             // Need to break execution before calling Terminate.

@@ -1313,32 +1313,19 @@ namespace CsDebugScript.Engine.Debuggers
             flowControler.WaitForDebuggerLoopToExit();
         }
 
-        public void SetBreakpoint(Process process, string expression)
+        public IBreakpoint SetBreakpoint(Process process, string expression)
         {
             throw new NotImplementedException();
         }
 
-        public void SetBreakpoint(Process process, string expression, Action executeOnBreakpointHit)
+        public IBreakpoint SetBreakpoint(Process process, string expression, Action executeOnBreakpointHit)
         {
             using (var processSwitcher = new ProcessSwitcher(StateCache, process))
             {
-                // For type there are two breakpoint types:
-                // Software breakpoint and Hardware breakpoint.
-                // Software breakpoint is implemented by modifying user's executable code.
-                // Hardware breakpoint is implemented by debugger engine instructing
-                // Targets processor to insert the breakpoint.
-                // TODO: Which one is to be used? I will start with software one.
-                IDebugBreakpoint2 nativeBreakpoint = null;
-                unchecked
-                {
-                    nativeBreakpoint = Control.AddBreakpoint2((uint)Defines.DebugBreakpointCode, (uint)Defines.DebugAnyId);
-                }
-
-                nativeBreakpoint.SetOffsetExpressionWide(expression);
-                nativeBreakpoint.AddFlags((uint)Defines.DebugBreakpointEnabled);
-                ManagedBreakpoint breakpoint = new ManagedBreakpoint(nativeBreakpoint, executeOnBreakpointHit, process);
-
+                DbgEngBreakpoint breakpoint = new DbgEngBreakpoint(expression, executeOnBreakpointHit, () => process.InvalidateProcessCache(), Control);
+                // TODO: Change this.
                 debugeeFlowControlers[process.Id].AddBreakpoint(breakpoint);
+                return breakpoint;
             }
         }
 
