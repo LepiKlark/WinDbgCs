@@ -321,6 +321,6 @@ namespace CsDebugScript.Engine
         /// <param name="process">Process in which to set the breakpoint.</param>
         /// <param name="expression">Expression to use when setting the breakpoint.</param>
         /// <param name="action">Action to execute when breakpoint is hit.</param>
-        IBreakpoint SetBreakpoint(Process process, string expression, Action action);
+        IBreakpoint SetBreakpoint(Process process, string expression, Func<BreakpointEventStatus> action);
     }
 }

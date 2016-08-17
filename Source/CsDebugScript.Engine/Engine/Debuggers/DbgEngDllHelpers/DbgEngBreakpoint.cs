@@ -17,7 +17,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <summary>
         /// Breakpoint action executed when breakpoint is hit.
         /// </summary>
-        private Action breakpointAction;
+        private Func<BreakpointEventStatus> breakpointAction;
 
         /// <summary>
         /// Invalidate cache when breakpoint is hit.
@@ -36,7 +36,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <param name="breakpointAction"></param>
         /// <param name="invalidateCache"></param>
         /// <param name="debugControlInterface"></param>
-        public DbgEngBreakpoint(string breakpointExpression, Action breakpointAction, Action invalidateCache, IDebugControl7 debugControlInterface)
+        public DbgEngBreakpoint(string breakpointExpression, Func<BreakpointEventStatus> breakpointAction, Action invalidateCache, IDebugControl7 debugControlInterface)
         {
             this.debugControlInterface = debugControlInterface;
 
@@ -56,10 +56,10 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <summary>
         /// Executes action assosiated to this breakpoint.
         /// </summary>
-        public void ExecutionAction()
+        public BreakpointEventStatus ExecutionAction()
         {
             invalidateCache();
-            breakpointAction();
+            return breakpointAction();
         }
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// Changes action executed when this breakpoint is hit.
         /// </summary>
         /// <param name="action"></param>
-        public void ChangeAction(Action action)
+        public void ChangeAction(Func<BreakpointEventStatus> action)
         {
             breakpointAction = action;
         }

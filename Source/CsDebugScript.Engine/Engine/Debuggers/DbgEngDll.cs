@@ -1318,7 +1318,7 @@ namespace CsDebugScript.Engine.Debuggers
             throw new NotImplementedException();
         }
 
-        public IBreakpoint SetBreakpoint(Process process, string expression, Action executeOnBreakpointHit)
+        public IBreakpoint SetBreakpoint(Process process, string expression, Func<BreakpointEventStatus> executeOnBreakpointHit)
         {
             using (var processSwitcher = new ProcessSwitcher(StateCache, process))
             {

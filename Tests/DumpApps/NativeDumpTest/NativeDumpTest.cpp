@@ -76,6 +76,11 @@ __declspec(noinline) void InfiniteRecursionTestCase(int arg)
     InfiniteRecursionTestCase(arg + 1);
 }
 
+__declspec(noinline) void InfiniteRecursionNoSleepTestCase(int arg)
+{
+    InfiniteRecursionNoSleepTestCase(arg + 1);
+}
+
 __declspec(noinline) int main(int argc, char** argv)
 {
 
@@ -94,6 +99,8 @@ __declspec(noinline) int main(int argc, char** argv)
     case 1:
         InfiniteRecursionTestCase(0);
         break;
+    case 2:
+        InfiniteRecursionNoSleepTestCase(0);
     default:
         DefaultTestCase();
     }

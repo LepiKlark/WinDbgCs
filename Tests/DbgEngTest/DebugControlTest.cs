@@ -125,13 +125,14 @@ namespace DbgEngTest
 
         static void BreakpointSimpleBody()
         {
-            InitializeProcess(TestProcessPath, ProcessArguments, DefaultSymbolPath);
+            string processUnderBreakpointTestCase = "2";
+            InitializeProcess(TestProcessPath, processUnderBreakpointTestCase, DefaultSymbolPath);
             Diagnostics.Debug.WriteLine($"Process {TestProcessPath} started.");
 
             // Stacktrace should everytime be greater for one.
             int lastStackDepth = 0;
 
-            Action action = () =>
+            Func<BreakpointEventStatus> action = () =>
             {
                 // TODO: DbgEng caches the current thread.
                 // Current cache purge is not enough.
@@ -150,14 +151,16 @@ namespace DbgEngTest
 
                 int numberOfInfiniteRecursionCallsOnStack =
                     mainThread.StackTrace.Frames.Where(
-                        f => f.FunctionName.Contains("InfiniteRecursionTestCase")).Count();
+                        f => f.FunctionName.Contains("InfiniteRecursionNoSleepTestCase")).Count();
 
                 Assert.AreEqual(numberOfInfiniteRecursionCallsOnStack, lastStackDepth + 1);
                 lastStackDepth++;
+
+                return BreakpointEventStatus.ReleaseDebugger;
             };
 
             // Set breakpoints here.
-            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase", action);
+            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionNoSleepTestCase", action);
 
             Debugger.ContinueExecution();
 
@@ -175,7 +178,7 @@ namespace DbgEngTest
 
             int numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable =
                 FindThreadHostingMain().StackTrace.Frames.Where(
-                    f => f.FunctionName.Contains("InfiniteRecursionTestCase")).Count();
+                    f => f.FunctionName.Contains("InfiniteRecursionNoSleepTestCase")).Count();
 
             Assert.IsTrue(numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable > (lastStackDepth + 2));
             lastStackDepth = numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable;
@@ -187,6 +190,31 @@ namespace DbgEngTest
 
             // Need to break execution before calling Terminate.
             Debugger.BreakExecution();
+        }
+
+        static void BreakpointCountEventFast()
+        {
+            string processUnderBreakpointTestCase = "2";
+            InitializeProcess(TestProcessPath, processUnderBreakpointTestCase, DefaultSymbolPath);
+            Diagnostics.Debug.WriteLine($"Process {TestProcessPath} started.");
+
+            int count = 0;
+            Func<BreakpointEventStatus> action = () =>
+            {
+                count++;
+                return BreakpointEventStatus.ReleaseDebugger;
+            };
+
+            // Set breakpoints here.
+            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionNoSleepTestCase", action);
+
+            Debugger.ContinueExecution();
+
+            System.Threading.Thread.Sleep(3000);
+
+            Debugger.BreakExecution();
+
+            Console.WriteLine("Happened {0} in 3s.", count);
         }
 
         /// <summary>
@@ -235,6 +263,12 @@ namespace DbgEngTest
         public void BreakpointSimpleTest()
         {
             ContinousTestExecutionWrapper(BreakpointSimpleBody);
+        }
+
+        [TestMethod]
+        public void BreakpointCountFastTest()
+        {
+            ContinousTestExecutionWrapper(BreakpointCountEventFast);
         }
 
     }

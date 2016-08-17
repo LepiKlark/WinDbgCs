@@ -532,7 +532,7 @@ namespace CsDebugScript.VS
         /// <param name="process">Process in which we are setting the breakpoint.</param>
         /// <param name="expression">Expression used to determine the offset of the breakpoint.</param>
         /// <param name="action">Action to be executed when breakpoint is hit.</param>
-        public IBreakpoint SetBreakpoint(Process process, string expression, Action action)
+        public IBreakpoint SetBreakpoint(Process process, string expression, Func<BreakpointEventStatus> action)
         {
             throw new NotImplementedException();
         }

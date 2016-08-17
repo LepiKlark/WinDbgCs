@@ -656,7 +656,7 @@ namespace CsDebugScript
         /// <param name="expression"></param>
         /// <param name="action"></param>
         /// <returns></returns>
-        public static IBreakpoint SetBreakpoint(string expression, Action action)
+        public static IBreakpoint SetBreakpoint(string expression, Func<BreakpointEventStatus> action)
         {
             return Context.Debugger.SetBreakpoint(Process.Current, expression, action);
         }
