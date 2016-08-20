@@ -17,6 +17,8 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// </summary>
         private IDebugClient client;
 
+        private DebuggeeFlowController debugeeFlowController;
+
         /// <summary>
         /// Dictionary containing all breakpoints.
         /// </summary>
@@ -26,12 +28,11 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// Initializes a new instance of the <see cref="DebugCallbacks"/> class.
         /// </summary>
         /// <param name="client">IDebugClient interface.</param>
-        /// <param name="debugStatusGoEvent">Event used to signal when debuggee switches to release state.</param>
-        public DebugCallbacks(IDebugClient client, System.Threading.AutoResetEvent debugStatusGoEvent, System.Threading.AutoResetEvent debugStatusBreakEvent)
+        /// <param name="debugeeFlowController">Flow controller used for debugee state syncronization.</param>
+        public DebugCallbacks(IDebugClient client, DebuggeeFlowController debugeeFlowController)
         {
             this.client = client;
-            this.debugStatusGoEvent = debugStatusGoEvent;
-            this.debugStatusBreakEvent = debugStatusBreakEvent;
+            this.debugeeFlowController = debugeeFlowController;
             this.client.SetEventCallbacks(this);
         }
 
@@ -52,16 +53,6 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         {
             breakpoints.Remove(breakpoint.GetId());
         }
-
-        /// <summary>
-        /// Event used to signal go state. Used to unblock DebugFlow loop.
-        /// </summary>
-        private System.Threading.AutoResetEvent debugStatusGoEvent;
-
-        /// <summary>
-        /// Event used to signal break state.
-        /// </summary>
-        private System.Threading.AutoResetEvent debugStatusBreakEvent;
 
         public int Breakpoint(IDebugBreakpoint Bp)
         {
@@ -86,7 +77,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 
             if (executionStatus == (uint)Defines.DebugStatusGo)
             {
-                debugStatusGoEvent.Set();
+                debugeeFlowController.DebugeeStateChanged(DebuggeeFlowController.DebuggerState.DebuggerStateGo);
             }
         }
 
