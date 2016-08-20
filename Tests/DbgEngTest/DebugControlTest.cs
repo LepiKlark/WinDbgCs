@@ -215,7 +215,7 @@ namespace DbgEngTest
             Debugger.BreakExecution();
 
             Console.WriteLine("Happened {0} in 3s.", count);
-        }
+      }
 
         /// <summary>
         /// Wrapper around actual tests which runs them in separate MTA thread

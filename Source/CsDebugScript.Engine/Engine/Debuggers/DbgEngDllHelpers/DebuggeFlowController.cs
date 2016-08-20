@@ -12,12 +12,12 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <summary>
         /// Signal fired during interactive process debugging when debugee is released.
         /// </summary>
-        public System.Threading.AutoResetEvent DebugStatusGo { get; private set; }
+        private System.Threading.AutoResetEvent debugStatusGo;
 
         /// <summary>
         /// Signal fired during interactive process debugging when debugee is interrupted.
         /// </summary>
-        public System.Threading.AutoResetEvent DebugStatusBreak { get; private set; }
+        private System.Threading.AutoResetEvent debugStatusBreak;
 
         /// <summary>
         /// Loop responsible for catching debug events and signaling debugee state.
@@ -49,8 +49,8 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
             // Default is that we start in break mode.
             // TODO: Needs to be changed when we allow non intrusive attach/start for example.
             //
-            DebugStatusGo = new System.Threading.AutoResetEvent(false);
-            DebugStatusBreak = new System.Threading.AutoResetEvent(true);
+            debugStatusGo = new System.Threading.AutoResetEvent(false);
+            debugStatusBreak = new System.Threading.AutoResetEvent(true);
 
             this.client = client;
 
@@ -75,7 +75,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         {
             bool hasClientExited = false;
             IDebugControl7 loopControl = (IDebugControl7)client;
-            debugCallbacks = new DebugCallbacks(client, DebugStatusGo, DebugStatusBreak);
+            debugCallbacks = new DebugCallbacks(client, debugStatusGo, debugStatusBreak);
 
             lock (eventCallbacksReady)
             {
@@ -84,7 +84,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 
             // Default is to start in break mode, wait for release.
             //
-            DebugStatusGo.WaitOne();
+            debugStatusGo.WaitOne();
 
             while (!hasClientExited)
             {
@@ -93,8 +93,8 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
 
                 while (executionStatus == (uint)Defines.DebugStatusBreak)
                 {
-                    DebugStatusBreak.Set();
-                    DebugStatusGo.WaitOne();
+                    debugStatusBreak.Set();
+                    debugStatusGo.WaitOne();
 
                     executionStatus = loopControl.GetExecutionStatus();
                 }
@@ -104,10 +104,39 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         }
 
         /// <summary>
-        /// Waits for debugger loop thread to finish.
+        /// Breaks the debugger.
         /// </summary>
-        public void WaitForDebuggerLoopToExit()
+        public void BreakExecution()
         {
+            IDebugControl7 control = (IDebugControl7)client;
+
+            control.SetInterrupt(0);
+
+            debugStatusBreak.WaitOne();
+        }
+
+        /// <summary>
+        /// Continues the execution.
+        /// </summary>
+        public void ContinueExecution()
+        {
+            IDebugControl7 control = (IDebugControl7)client;
+
+            debugStatusBreak.WaitOne();
+            control.Execute(0, "g", 0);
+        }
+
+        /// <summary>
+        /// Terminates execution of current process.
+        /// </summary>
+        public void TerminateExecution()
+        {
+            // Release any threads that are waiting.
+            //
+            debugStatusGo.Set();
+            debugStatusBreak.Set();
+
+            // Wait for debug loop to exit.
             debuggerStateLoop.Join();
         }
 

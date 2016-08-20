@@ -1269,8 +1269,7 @@ namespace CsDebugScript.Engine.Debuggers
             using (var processSwitcher = new ProcessSwitcher(StateCache, process))
             {
                 DebuggeeFlowController flowControler = debugeeFlowControlers[process.Id];
-                flowControler.DebugStatusBreak.WaitOne();
-                Control.Execute(0, "g", 0);
+                flowControler.ContinueExecution();
             }
         }
 
@@ -1282,9 +1281,8 @@ namespace CsDebugScript.Engine.Debuggers
             using (var processSwitcher = new ProcessSwitcher(StateCache, process))
             {
                 DebuggeeFlowController flowControler = debugeeFlowControlers[process.Id];
-                flowControler.DebugStatusBreak.Reset();
-                Control.SetInterrupt(0);
-                flowControler.DebugStatusBreak.WaitOne();
+
+                flowControler.BreakExecution();
 
                 // Drop the cache.
                 // TODO: When support for debugging multiple processes is added.
@@ -1305,12 +1303,7 @@ namespace CsDebugScript.Engine.Debuggers
             DebuggeeFlowController flowControler;
             debugeeFlowControlers.RemoveEntry(process.Id, out flowControler);
 
-            // Release any threads that are waiting.
-            //
-            flowControler.DebugStatusGo.Set();
-            flowControler.DebugStatusBreak.Set();
-
-            flowControler.WaitForDebuggerLoopToExit();
+            flowControler.TerminateExecution();
         }
 
         public IBreakpoint SetBreakpoint(Process process, string expression)
