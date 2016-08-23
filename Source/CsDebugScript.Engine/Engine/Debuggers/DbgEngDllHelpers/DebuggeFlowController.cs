@@ -11,26 +11,14 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
     class DebuggeeFlowController
     {
         /// <summary>
-        /// Enum defining whether this control flow is
-        /// currently in break or go state.
+        /// Signal that debugger is released.
         /// </summary>
-        public enum DebuggerState
-        {
-            DebuggerStateGo,
-            DebuggerStateBreak,
-        }
+        private AutoResetEvent controllerSyncReleaseDebuggerEvent;
 
         /// <summary>
-        /// Current debugger state.
+        /// Signal that break signall has been processed.
         /// </summary>
-        private DebuggerState debuggerState;
-
-        /// <summary>
-        /// Object used for syncronization when changing debugger state.
-        /// </summary>
-        private object stateChangeSyncronization = new object();
-
-        private object eventStateSignalled = new object();
+        private AutoResetEvent controllerSyncBreakSignalledEvent;
 
         /// <summary>
         /// Loop responsible for catching debug events and signaling debugee state.
@@ -59,11 +47,6 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <param name="client">The client.</param>
         public DebuggeeFlowController(IDebugClient client)
         {
-            // Default is that we start in break mode.
-            // TODO: Needs to be changed when we allow non intrusive attach/start for example.
-            //
-            debuggerState = DebuggerState.DebuggerStateBreak;
-
             this.client = client;
 
             lock (eventCallbacksReady)
@@ -74,7 +57,6 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
                 debuggerStateLoop.Start();
 
                 // Wait for loop thread to become ready.
-                //
                 Monitor.Wait(eventCallbacksReady);
             }
         }
@@ -88,6 +70,8 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
             bool hasClientExited = false;
             IDebugControl7 loopControl = (IDebugControl7)client;
             debugCallbacks = new DebugCallbacks(client, this);
+            controllerSyncReleaseDebuggerEvent = new AutoResetEvent(false);
+            controllerSyncBreakSignalledEvent = new AutoResetEvent(false);
 
             lock (eventCallbacksReady)
             {
@@ -95,25 +79,28 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
             }
 
             // Default is to start in break mode, wait for release.
-            //
-            lock (eventStateSignalled)
-            {
-                Monitor.Wait(eventStateSignalled);
-            }
+            // TODO: Needs to be changed when we allow non intrusive attach/start for example.
+            controllerSyncReleaseDebuggerEvent.WaitOne();
 
             while (!hasClientExited)
             {
                 loopControl.WaitForEvent(0, UInt32.MaxValue);
                 uint executionStatus = loopControl.GetExecutionStatus();
 
-                while (executionStatus == (uint)Defines.DebugStatusBreak)
+                if (executionStatus == (uint)Defines.DebugStatusBreak)
                 {
-                    lock (eventStateSignalled)
-                    {
-                        Monitor.Pulse(eventStateSignalled);
-                    }
+                    // Loop until debugger state break has been signaled.
+                    controllerSyncBreakSignalledEvent.Set();
+
+                    // Wait for debugger to continue.
+                    controllerSyncReleaseDebuggerEvent.WaitOne();
 
                     executionStatus = loopControl.GetExecutionStatus();
+
+                    if (executionStatus == (uint)Defines.DebugStatusBreak)
+                    {
+                        throw new InvalidOperationException("Can't be in break state after go event is signaled");
+                    }
                 }
 
                 hasClientExited = executionStatus == (uint)Defines.DebugStatusNoDebuggee;
@@ -125,19 +112,11 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// </summary>
         public void BreakExecution()
         {
-            lock(eventStateSignalled)
-            {
-                if (debuggerState == DebuggerState.DebuggerStateBreak)
-                {
-                    // Can't break two times.
-                    throw new InvalidOperationException("Break can be executed only once.");
-                }
+            IDebugControl7 control = (IDebugControl7)client;
+            control.SetInterrupt(0);
 
-                IDebugControl7 control = (IDebugControl7)client;
-                control.SetInterrupt(0);
-                Monitor.Wait(eventStateSignalled);
-                debuggerState = DebuggerState.DebuggerStateBreak;
-            }
+            // Wait for break event to be processed.
+            controllerSyncBreakSignalledEvent.WaitOne();
         }
 
         /// <summary>
@@ -145,13 +124,10 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// </summary>
         public void ContinueExecution()
         {
-            lock(eventStateSignalled)
-            {
-                IDebugControl7 control = (IDebugControl7)client;
-                control.Execute(0, "g", 0);
-                debuggerState = DebuggerState.DebuggerStateGo;
-                Monitor.Pulse(eventStateSignalled);
-            }
+            IDebugControl7 control = (IDebugControl7)client;
+            control.Execute(0, "g", 0);
+
+            controllerSyncReleaseDebuggerEvent.Set();
         }
 
         /// <summary>
@@ -159,20 +135,11 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// </summary>
         public void TerminateExecution()
         {
-            // Release any threads that are waiting.
-            lock (eventStateSignalled)
-            {
-                Monitor.Pulse(eventStateSignalled);
-            }
+            controllerSyncBreakSignalledEvent.Set();
+            controllerSyncReleaseDebuggerEvent.Set();
 
             // Wait for debug loop to exit.
             debuggerStateLoop.Join();
-        }
-
-        public void DebugeeStateChanged(DebuggerState debugeeState)
-        {
-            debuggerState = debugeeState;
-            // TODO....
         }
 
         /// <summary>

@@ -73,12 +73,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <returns></returns>
         public void ChangeDebuggeeState(uint Flags, ulong Argument)
         {
-            uint executionStatus = ((IDebugControl7)client).GetExecutionStatus();
-
-            if (executionStatus == (uint)Defines.DebugStatusGo)
-            {
-                debugeeFlowController.DebugeeStateChanged(DebuggeeFlowController.DebuggerState.DebuggerStateGo);
-            }
+            throw new NotImplementedException();
         }
 
         public void ChangeEngineState(uint Flags, ulong Argument)
@@ -143,7 +138,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <returns></returns>
         public uint GetInterestMask()
         {
-            return (uint)Defines.DebugEventChangeDebuggeeState | (uint)Defines.DebugEventBreakpoint;
+            return (uint)Defines.DebugEventBreakpoint;
         }
     }
 }

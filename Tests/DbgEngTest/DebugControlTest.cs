@@ -123,7 +123,7 @@ namespace DbgEngTest
             }
         }
 
-        static void BreakpointSimpleBody()
+        static void BreakpointE2EBody()
         {
             string processUnderBreakpointTestCase = "1";
             InitializeProcess(TestProcessPath, processUnderBreakpointTestCase, DefaultSymbolPath);
@@ -245,13 +245,13 @@ namespace DbgEngTest
             Assert.IsTrue(testTask.Exception == null, "Exception happened while running the test");
         }
 
-        [TestMethod, Timeout(30000)]
+        [TestMethod, Timeout(15000)]
         public void GoBreakContinuosTestDepth()
         {
             ContinousTestExecutionWrapper(GoBreakContinuosTestDepthBody);
         }
 
-        [TestMethod, Timeout(30000)]
+        [TestMethod, Timeout(15000)]
         public void GoBreakContinousVariablesChange()
         {
             ContinousTestExecutionWrapper(GoBreakContinousVariablesChangeBody);
@@ -265,9 +265,9 @@ namespace DbgEngTest
         }
 
         [TestMethod, Timeout(20000)]
-        public void BreakpointSimpleTest()
+        public void BreakpointE2ETest()
         {
-            ContinousTestExecutionWrapper(BreakpointSimpleBody);
+            ContinousTestExecutionWrapper(BreakpointE2EBody);
         }
 
         [TestMethod, Timeout(10000)]
