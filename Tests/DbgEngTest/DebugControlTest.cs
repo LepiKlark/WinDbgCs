@@ -140,15 +140,8 @@ namespace DbgEngTest
                 // I would expect that breakpoint hit would set current thread to the
                 // one that hit the breakpoint.
 
-                Thread mainThread = FindThreadHostingMain();
-                System.Text.StringBuilder sb = new System.Text.StringBuilder();
-                foreach (var frame in mainThread.StackTrace.Frames)
-                {
-                    sb.AppendLine(frame.FunctionName);
-                }
-
                 int numberOfInfiniteRecursionCallsOnStack =
-                    mainThread.StackTrace.Frames.Where(
+                    Thread.Current.StackTrace.Frames.Where(
                         f => f.FunctionName.Contains("InfiniteRecursionTestCase")).Count();
 
                 Assert.AreEqual(numberOfInfiniteRecursionCallsOnStack, lastStackDepth + 1);
@@ -158,7 +151,7 @@ namespace DbgEngTest
             };
 
             // Set breakpoints here.
-            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionTestCase", action);
+            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_*!InfiniteRecursionTestCase", action);
 
             Debugger.ContinueExecution();
 
@@ -186,12 +179,11 @@ namespace DbgEngTest
             lastStackDepth = numberOfInfiniteRecursionCallsOnStackAfterBreakpointDisable;
 
             Diagnostics.Debug.WriteLine("Enabling breakpoint 2nd time.");
+
             // Enable again.
             breakpoint.Enable();
             Debugger.ContinueExecution();
             System.Threading.Thread.Sleep(3000);
-
-            Diagnostics.Debug.WriteLine("Final break.");
 
             // Need to break execution before calling Terminate.
             Debugger.BreakExecution();
@@ -211,7 +203,7 @@ namespace DbgEngTest
             };
 
             // Set breakpoints here.
-            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_x86!InfiniteRecursionNoSleepTestCase", action);
+            IBreakpoint breakpoint = Debugger.SetBreakpoint("NativeDumpTest_*!InfiniteRecursionNoSleepTestCase", action);
 
             Debugger.ContinueExecution();
 

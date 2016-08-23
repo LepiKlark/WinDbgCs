@@ -145,7 +145,7 @@ namespace CsDebugScript.Engine.Debuggers.DbgEngDllHelpers
         /// <summary>
         /// Adds new breakpoint to debug callbacks.
         /// </summary>
-        /// <param name="breakpoint"></param>
+        /// <param name="breakpoint">Breakpoint object.</param>
         public void AddBreakpoint(DbgEngBreakpoint breakpoint)
         {
             debugCallbacks.AddBreakpoint(breakpoint);
